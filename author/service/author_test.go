@@ -138,3 +138,50 @@ func TestGet(t *testing.T) {
 		authorRepo.AssertExpectations(t)
 	})
 }
+
+func TestGetByFilter(t *testing.T) {
+	as := assert.New(t)
+	authorRepo := &repository.AuthorRepositoryMock{}
+	bookRepo := &repository.BookRepositoryMock{}
+	authorBookRepo := &repository.AuthorBooksRepositoryMock{}
+
+	t.Run("happy path: Successfully fetches an author by filter", func(t *testing.T) {
+		authorRepo.On("GetByFilter", context.Background(), "name", "john").Return([]domain.Author{
+			{
+				Name: "John Doe",
+			},
+			{
+				Name: "Johnson",
+			},
+		}, nil).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		authors, err := service.GetByFilter(context.Background(), "name", "john")
+		as.NoError(err)
+		as.Equal(len(authors), 2)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("input error: filter doesn't match record", func(t *testing.T) {
+		authorRepo.On("GetByFilter", context.Background(), "name", "dgdfhdhj").Return([]domain.Author{}, domain.ErrRecordNotFound).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		authors, err := service.GetByFilter(context.Background(), "name", "dgdfhdhj")
+		as.Error(err)
+		as.Equal(len(authors), 0)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("system error: Database failed", func(t *testing.T) {
+		authorRepo.On("GetByFilter", context.Background(), "name", "dgdfhdhj").Return([]domain.Author{}, errors.New("something failed")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		authors, err := service.GetByFilter(context.Background(), "name", "dgdfhdhj")
+		as.Error(err)
+		as.Equal(len(authors), 0)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+}
