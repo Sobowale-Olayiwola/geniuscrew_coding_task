@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"geniuscrew/domain"
 	"geniuscrew/domain/mocks/repository"
 	"testing"
@@ -23,6 +24,14 @@ func TestCreate(t *testing.T) {
 
 	t.Run("input error: Duplicate book", func(t *testing.T) {
 		bookRepo.On("Create", context.Background(), mock.Anything).Return(domain.ErrDuplicateRecord).Once()
+		service := NewBookService(bookRepo)
+		err := service.Create(context.Background(), &domain.Book{})
+		as.Error(err)
+		bookRepo.AssertExpectations(t)
+	})
+
+	t.Run("system error: Database failed", func(t *testing.T) {
+		bookRepo.On("Create", context.Background(), mock.Anything).Return(errors.New("Internal error")).Once()
 		service := NewBookService(bookRepo)
 		err := service.Create(context.Background(), &domain.Book{})
 		as.Error(err)
