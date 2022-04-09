@@ -38,3 +38,22 @@ func TestCreate(t *testing.T) {
 		bookRepo.AssertExpectations(t)
 	})
 }
+
+func TestGet(t *testing.T) {
+	as := assert.New(t)
+	bookRepo := &repository.BookRepositoryMock{}
+	id := "1"
+	t.Run("happy path: Successfully fetches a book", func(t *testing.T) {
+		bookRepo.On("Get", context.Background(), id).Return(domain.Book{
+			ID:          1,
+			ISBN:        "978160309028",
+			Title:       "About test",
+			Description: "How to write unit test",
+		}, nil).Once()
+		service := NewBookService(bookRepo)
+		book, err := service.Get(context.Background(), id)
+		as.NoError(err)
+		as.Equal("978160309028", book.ISBN)
+		bookRepo.AssertExpectations(t)
+	})
+}
