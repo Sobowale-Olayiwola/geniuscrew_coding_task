@@ -120,3 +120,23 @@ func TestGetByFilter(t *testing.T) {
 		bookRepo.AssertExpectations(t)
 	})
 }
+
+func TestUpdate(t *testing.T) {
+	as := assert.New(t)
+	bookRepo := &repository.BookRepositoryMock{}
+	id := "1"
+	t.Run("happy path: Successfully updates a book", func(t *testing.T) {
+		bookRepo.On("Update", context.Background(), mock.Anything, mock.Anything).Return(nil).Once()
+		service := NewBookService(bookRepo)
+		err := service.Update(context.Background(), id, &domain.Book{}, domain.Book{})
+		as.NoError(err)
+		bookRepo.AssertExpectations(t)
+	})
+	t.Run("system error: Database failed", func(t *testing.T) {
+		bookRepo.On("Update", context.Background(), mock.Anything, mock.Anything).Return(errors.New("Something failed")).Once()
+		service := NewBookService(bookRepo)
+		err := service.Update(context.Background(), id, &domain.Book{}, domain.Book{})
+		as.Error(err)
+		bookRepo.AssertExpectations(t)
+	})
+}
