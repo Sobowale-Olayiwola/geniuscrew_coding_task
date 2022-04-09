@@ -157,7 +157,7 @@ func (p *BookHandler) DeleteBookByID(c *gin.Context) {
 func (p *BookHandler) GetByFilter(c *gin.Context) {
 	filter := c.Query("field")
 	filterValue := c.Query("value")
-	filterSafeList := []string{"title", "description", "authorId"}
+	filterSafeList := []string{"title", "description"}
 	if !helpers.In(filter, filterSafeList...) {
 		message := make(map[string][]string)
 		message["filter_fields_allowed"] = filterSafeList
