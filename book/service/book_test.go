@@ -20,4 +20,12 @@ func TestCreate(t *testing.T) {
 		as.NoError(err)
 		bookRepo.AssertExpectations(t)
 	})
+
+	t.Run("input error: Duplicate book", func(t *testing.T) {
+		bookRepo.On("Create", context.Background(), mock.Anything).Return(domain.ErrDuplicateRecord).Once()
+		service := NewBookService(bookRepo)
+		err := service.Create(context.Background(), &domain.Book{})
+		as.Error(err)
+		bookRepo.AssertExpectations(t)
+	})
 }
