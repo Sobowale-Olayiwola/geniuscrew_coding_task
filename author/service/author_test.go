@@ -273,3 +273,40 @@ func TestUpdate(t *testing.T) {
 		authorRepo.AssertExpectations(t)
 	})
 }
+
+func TestDelete(t *testing.T) {
+	as := assert.New(t)
+	id := "1"
+	authorRepo := &repository.AuthorRepositoryMock{}
+	bookRepo := &repository.BookRepositoryMock{}
+	authorBookRepo := &repository.AuthorBooksRepositoryMock{}
+	t.Run("happy path: successfully deletes an author", func(t *testing.T) {
+		authorBookRepo.On("Delete", context.Background(), id).Return(nil).Once()
+		authorRepo.On("Delete", context.Background(), id, &domain.Author{}).Return(nil).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Delete(context.Background(), id, &domain.Author{})
+		as.NoError(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+	t.Run("an error occured while deleting author id in junction table", func(t *testing.T) {
+		authorBookRepo.On("Delete", context.Background(), id).Return(errors.New("an error occured")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Delete(context.Background(), id, &domain.Author{})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+	t.Run("an error occured while deleting author", func(t *testing.T) {
+		authorBookRepo.On("Delete", context.Background(), id).Return(nil).Once()
+		authorRepo.On("Delete", context.Background(), id, &domain.Author{}).Return(errors.New("an error occured")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Delete(context.Background(), id, &domain.Author{})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+}
