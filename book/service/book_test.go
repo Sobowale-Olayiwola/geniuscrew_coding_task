@@ -65,4 +65,13 @@ func TestGet(t *testing.T) {
 		as.Equal("", book.ISBN)
 		bookRepo.AssertExpectations(t)
 	})
+
+	t.Run("system error: Database failed", func(t *testing.T) {
+		bookRepo.On("Get", context.Background(), id).Return(domain.Book{}, errors.New("Something failed")).Once()
+		service := NewBookService(bookRepo)
+		book, err := service.Get(context.Background(), id)
+		as.Error(err)
+		as.Equal("", book.ISBN)
+		bookRepo.AssertExpectations(t)
+	})
 }
