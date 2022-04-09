@@ -96,3 +96,45 @@ func TestCreate(t *testing.T) {
 		authorRepo.AssertExpectations(t)
 	})
 }
+
+func TestGet(t *testing.T) {
+	as := assert.New(t)
+	authorRepo := &repository.AuthorRepositoryMock{}
+	bookRepo := &repository.BookRepositoryMock{}
+	authorBookRepo := &repository.AuthorBooksRepositoryMock{}
+	id := "1"
+	t.Run("happy path: Successfully fetches an author", func(t *testing.T) {
+		authorRepo.On("Get", context.Background(), id).Return(domain.Author{
+			Name: "John Doe",
+		}, nil).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		author, err := service.Get(context.Background(), id)
+		as.NoError(err)
+		as.Equal("John Doe", author.Name)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("input error: author not found", func(t *testing.T) {
+		authorRepo.On("Get", context.Background(), id).Return(domain.Author{}, domain.ErrRecordNotFound).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		author, err := service.Get(context.Background(), id)
+		as.Error(err)
+		as.Equal("", author.Name)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("system error: Database failed", func(t *testing.T) {
+		authorRepo.On("Get", context.Background(), id).Return(domain.Author{}, errors.New("something failed")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		author, err := service.Get(context.Background(), id)
+		as.Error(err)
+		as.Equal("", author.Name)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+}
