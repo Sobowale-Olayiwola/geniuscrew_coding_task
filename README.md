@@ -22,6 +22,7 @@ fields you can add fields for describing authors inside a database.
 
 ## Endpoints available
 baseurl = localhost 
+
 port = 8080
 
 ### Creates an author
@@ -60,7 +61,7 @@ port = 8080
 ### Deletes a book with a specific id
 * DELETE 
     * /api/v1/books/:id
-## How to run generate executable
+## How to run and generate executable
 * go mod download
 * cd cmd/api
 * go build main.go data_sources.go injection.go
