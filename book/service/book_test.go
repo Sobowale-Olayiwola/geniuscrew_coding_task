@@ -56,4 +56,13 @@ func TestGet(t *testing.T) {
 		as.Equal("978160309028", book.ISBN)
 		bookRepo.AssertExpectations(t)
 	})
+
+	t.Run("input error: Book not found", func(t *testing.T) {
+		bookRepo.On("Get", context.Background(), id).Return(domain.Book{}, domain.ErrRecordNotFound).Once()
+		service := NewBookService(bookRepo)
+		book, err := service.Get(context.Background(), id)
+		as.Error(err)
+		as.Equal("", book.ISBN)
+		bookRepo.AssertExpectations(t)
+	})
 }
