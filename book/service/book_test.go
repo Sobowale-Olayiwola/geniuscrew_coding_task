@@ -140,3 +140,23 @@ func TestUpdate(t *testing.T) {
 		bookRepo.AssertExpectations(t)
 	})
 }
+
+func TestDelete(t *testing.T) {
+	as := assert.New(t)
+	bookRepo := &repository.BookRepositoryMock{}
+	id := "1"
+	t.Run("happy path: Successfully deletes a book", func(t *testing.T) {
+		bookRepo.On("Delete", context.Background(), id, mock.Anything).Return(nil).Once()
+		service := NewBookService(bookRepo)
+		err := service.Delete(context.Background(), id, &domain.Book{})
+		as.NoError(err)
+		bookRepo.AssertExpectations(t)
+	})
+	t.Run("an error occured while deleting book", func(t *testing.T) {
+		bookRepo.On("Delete", context.Background(), id, mock.Anything).Return(errors.New("something failed")).Once()
+		service := NewBookService(bookRepo)
+		err := service.Delete(context.Background(), id, &domain.Book{})
+		as.Error(err)
+		bookRepo.AssertExpectations(t)
+	})
+}
