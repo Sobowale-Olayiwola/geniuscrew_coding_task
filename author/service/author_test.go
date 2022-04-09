@@ -185,3 +185,91 @@ func TestGetByFilter(t *testing.T) {
 		authorRepo.AssertExpectations(t)
 	})
 }
+
+func TestUpdate(t *testing.T) {
+	as := assert.New(t)
+	id := "1"
+	authorRepo := &repository.AuthorRepositoryMock{}
+	bookRepo := &repository.BookRepositoryMock{}
+	authorBookRepo := &repository.AuthorBooksRepositoryMock{}
+	t.Run("happy path: successfully updates an author", func(t *testing.T) {
+
+		bookRepo.On("GetByISBN", context.Background(), "ISBN", []string{"978160309028"}).Return([]domain.Book{
+			{
+				ISBN:  "978160309028",
+				Title: "Testing in golang",
+			},
+		}, nil).Once()
+		authorRepo.On("Update", context.Background(), &domain.Author{}, mock.Anything).Return(nil).Once()
+		authorBookRepo.On("Update", context.Background(), id, &domain.Author{}, []domain.Book{
+			{
+				ISBN:  "978160309028",
+				Title: "Testing in golang",
+			},
+		}).Return(nil).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Update(context.Background(), id, &domain.Author{}, domain.Author{}, []string{"978160309028"})
+		as.NoError(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("input error: list of books to update doesn't exist", func(t *testing.T) {
+		bookRepo.On("GetByISBN", context.Background(), "ISBN", []string{"978160309028"}).Return([]domain.Book{}, nil).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Update(context.Background(), id, &domain.Author{}, domain.Author{}, []string{"978160309028"})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("system error: Database failed in getting list of existing books", func(t *testing.T) {
+		bookRepo.On("GetByISBN", context.Background(), "ISBN", []string{"978160309028"}).Return([]domain.Book{}, errors.New("something failed")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Update(context.Background(), id, &domain.Author{}, domain.Author{}, []string{"978160309028"})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("an error occured while updating author profile", func(t *testing.T) {
+		bookRepo.On("GetByISBN", context.Background(), "ISBN", []string{"978160309028"}).Return([]domain.Book{
+			{
+				ISBN:  "978160309028",
+				Title: "Testing in golang",
+			},
+		}, nil).Once()
+		authorRepo.On("Update", context.Background(), &domain.Author{}, mock.Anything).Return(errors.New("an error occured")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Update(context.Background(), id, &domain.Author{}, domain.Author{}, []string{"978160309028"})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+
+	t.Run("an error occured while updating junction table for author and books", func(t *testing.T) {
+		bookRepo.On("GetByISBN", context.Background(), "ISBN", []string{"978160309028"}).Return([]domain.Book{
+			{
+				ISBN:  "978160309028",
+				Title: "Testing in golang",
+			},
+		}, nil).Once()
+		authorRepo.On("Update", context.Background(), &domain.Author{}, mock.Anything).Return(nil).Once()
+		authorBookRepo.On("Update", context.Background(), id, &domain.Author{}, []domain.Book{
+			{
+				ISBN:  "978160309028",
+				Title: "Testing in golang",
+			},
+		}).Return(errors.New("an error occured")).Once()
+		service := NewAuthorService(authorRepo, authorBookRepo, bookRepo)
+		err := service.Update(context.Background(), id, &domain.Author{}, domain.Author{}, []string{"978160309028"})
+		as.Error(err)
+		authorBookRepo.AssertExpectations(t)
+		bookRepo.AssertExpectations(t)
+		authorRepo.AssertExpectations(t)
+	})
+}
